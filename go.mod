@@ -9,6 +9,7 @@ require (
 	github.com/gin-gonic/gin v1.7.2
 	github.com/google/uuid v1.3.0
 	github.com/olivere/elastic/v7 v7.0.26
+	github.com/prometheus/client_golang v1.11.0
 	github.com/ryanuber/columnize v2.1.2+incompatible
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cast v1.3.1

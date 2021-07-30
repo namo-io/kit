@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func Hostname() string {
+func GetHostname() string {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return "Unknown"
@@ -56,4 +56,16 @@ func StringsToObjectIds(slice []string) ([]primitive.ObjectID, error) {
 	}
 
 	return objectIds, nil
+}
+
+func ObjectIdToString(objectId primitive.ObjectID) string {
+	return objectId.Hex()
+}
+
+func ObjectIdsToStrings(objectIds []primitive.ObjectID) []string {
+	strs := make([]string, 0)
+	for _, objectId := range objectIds {
+		strs = append(strs, ObjectIdToString(objectId))
+	}
+	return strs
 }

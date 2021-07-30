@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"context"
+	"fmt"
 	"net/rpc"
 	"strings"
 
@@ -11,20 +12,24 @@ import (
 	"github.com/google/uuid"
 	"github.com/namo-io/kit/pkg/keys"
 	"github.com/namo-io/kit/pkg/log/logger"
+	"github.com/namo-io/kit/pkg/util"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc"
 )
 
 // Default middleware default set
 func Default() []gin.HandlerFunc {
 	return []gin.HandlerFunc{
-		Gzip(),
-		RequestID(),
 		CORS(),
+		Gzip(),
+		InjectRequestID(),
+		Metrics(prometheus.DefaultRegisterer),
 	}
 }
 
-// RequestID setter RequestID(UUID) into route context
-func RequestID() gin.HandlerFunc {
+// InjectRequestID setter RequestID(UUID) into route context
+func InjectRequestID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestID := uuid.New()
 
@@ -64,5 +69,25 @@ func GRPC(s *grpc.Server) gin.HandlerFunc {
 		if c.Request.ProtoMajor == 2 && strings.Contains(c.ContentType(), "application/grpc") {
 			s.ServeHTTP(c.Writer, c.Request)
 		}
+	}
+}
+
+// Metrics default metrics(http request total/latency ...)
+func Metrics(register prometheus.Registerer) gin.HandlerFunc {
+	hostname := util.GetHostname()
+
+	ServerHTTPRequestTotal := promauto.With(register).NewCounterVec(prometheus.CounterOpts{
+		Name: "server_http_request_total",
+	}, []string{"hostname", "method", "path", "status"})
+
+	return func(c *gin.Context) {
+		c.Next()
+
+		method := c.Request.Method
+		path := c.Request.URL.RequestURI()
+		status := fmt.Sprint(c.Writer.Status())
+
+		// http request total increae
+		ServerHTTPRequestTotal.WithLabelValues(hostname, method, path, status).Inc()
 	}
 }
