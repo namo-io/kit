@@ -1,11 +1,13 @@
 package keys
 
-type Key string
-
 const (
-	RequestID = Key("RequestID")
+	RequestId     = "request-id"
+	Authorization = "authorization"
 )
 
-func (k Key) String() string {
-	return string(k)
+func All() []string {
+	return []string{
+		RequestId,
+		Authorization,
+	}
 }

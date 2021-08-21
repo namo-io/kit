@@ -3,6 +3,7 @@ module github.com/namo-io/kit
 go 1.15
 
 require (
+	github.com/99designs/gqlgen v0.13.0
 	github.com/barkimedes/go-deepcopy v0.0.0-20200817023428-a044a1957ca4
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-contrib/gzip v0.0.3

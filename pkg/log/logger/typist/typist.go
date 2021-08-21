@@ -138,7 +138,7 @@ func (t *typist) WithField(key string, value interface{}) logger.Logger {
 		t.Warnf("WithField key parameter is empty, key: %v", key)
 	}
 
-	if len(key) > 0 && unicode.IsLower(rune(key[0])) {
+	if len(key) > 0 && !unicode.IsLower(rune(key[0])) {
 		t.Warnf("WithField key parameter is not letter character, key: %v", key)
 	}
 

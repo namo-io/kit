@@ -19,9 +19,9 @@ var (
 )
 
 const (
-	ApplicationMetaKey = "App"
-	ComponentMetaKey   = "Component"
-	HostnameMetaKey    = "Host"
+	ApplicationMetaKey = "app"
+	ComponentMetaKey   = "component"
+	HostnameMetaKey    = "host"
 )
 
 func init() {

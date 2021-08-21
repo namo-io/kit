@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/namo-io/kit/pkg/keys"
 	"github.com/namo-io/kit/pkg/log/logger/typist"
@@ -19,8 +20,13 @@ func (t *contextMapper) Name() string {
 }
 
 func (c *contextMapper) Fire(ctx context.Context, level typist.Level, rs *typist.Record) error {
-	if contextRequiestID := ctx.Value(keys.RequestID); contextRequiestID != nil {
-		rs.Meta[keys.RequestID.String()] = contextRequiestID
+	_requestId := ctx.Value(keys.RequestId)
+	if _requestId != nil && reflect.TypeOf(_requestId).Kind() == reflect.String {
+		requestId := _requestId.(string)
+
+		if len(requestId) != 0 {
+			rs.Meta[keys.RequestId] = requestId
+		}
 	}
 
 	return nil

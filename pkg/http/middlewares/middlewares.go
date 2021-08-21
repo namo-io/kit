@@ -3,8 +3,8 @@ package middlewares
 import (
 	"context"
 	"fmt"
-	"net/rpc"
 	"strings"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
@@ -28,13 +28,24 @@ func Default() []gin.HandlerFunc {
 	}
 }
 
-// InjectRequestID setter RequestID(UUID) into route context
+// InjectRequestID inject request-id(UUID) into route header/context
+// pass the requets id header, create if none exists
 func InjectRequestID() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		requestID := uuid.New()
+		// read := x-request-id > request-id => new uuid()
 
+		requestId := c.GetHeader("x-request-id")
+		if requestId == "" {
+			requestId = c.GetHeader(keys.RequestId)
+		}
+
+		if requestId == "" {
+			requestId = uuid.New().String()
+		}
+
+		// context
 		ctx := c.Request.Context()
-		ctx = context.WithValue(ctx, keys.RequestID, requestID.String())
+		ctx = context.WithValue(ctx, keys.RequestId, requestId)
 		c.Request = c.Request.WithContext(ctx)
 	}
 }
@@ -58,12 +69,6 @@ func CORS() gin.HandlerFunc {
 	return cors.Default()
 }
 
-func RPC(s *rpc.Server) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		s.ServeHTTP(c.Writer, c.Request)
-	}
-}
-
 func GRPC(s *grpc.Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.ProtoMajor == 2 && strings.Contains(c.ContentType(), "application/grpc") {
@@ -76,18 +81,23 @@ func GRPC(s *grpc.Server) gin.HandlerFunc {
 func Metrics(register prometheus.Registerer) gin.HandlerFunc {
 	hostname := util.GetHostname()
 
-	ServerHTTPRequestTotal := promauto.With(register).NewCounterVec(prometheus.CounterOpts{
-		Name: "server_http_request_total",
+	ServerRequestStartAt := promauto.With(register).NewHistogramVec(prometheus.HistogramOpts{
+		Name: "server_request_start_at",
+	}, []string{"hostname", "method", "path", "status"})
+	ServerRequestEndAt := promauto.With(register).NewHistogramVec(prometheus.HistogramOpts{
+		Name: "server_request_end_at",
 	}, []string{"hostname", "method", "path", "status"})
 
 	return func(c *gin.Context) {
-		c.Next()
-
 		method := c.Request.Method
 		path := c.Request.URL.RequestURI()
 		status := fmt.Sprint(c.Writer.Status())
 
-		// http request total increae
-		ServerHTTPRequestTotal.WithLabelValues(hostname, method, path, status).Inc()
+		t := float64(time.Now().UnixNano() / int64(time.Millisecond))
+		ServerRequestStartAt.WithLabelValues(hostname, method, path, status).Observe(t)
+		c.Next()
+
+		t = float64(time.Now().UnixNano() / int64(time.Millisecond))
+		ServerRequestEndAt.WithLabelValues(hostname, method, path, status).Observe(t)
 	}
 }
