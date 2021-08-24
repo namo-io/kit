@@ -24,11 +24,12 @@ func Default() []gin.HandlerFunc {
 		CORS(),
 		Gzip(),
 		InjectRequestID(),
+		InjectAuthorization(),
 		Metrics(prometheus.DefaultRegisterer),
 	}
 }
 
-// InjectRequestID inject request-id(UUID) into route header/context
+// InjectRequestID inject request-id(UUID) into route context
 // pass the requets id header, create if none exists
 func InjectRequestID() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -46,6 +47,20 @@ func InjectRequestID() gin.HandlerFunc {
 		// context
 		ctx := c.Request.Context()
 		ctx = context.WithValue(ctx, keys.RequestId, requestId)
+		c.Request = c.Request.WithContext(ctx)
+	}
+}
+
+// InjectAuthorization inject authorization into route context
+func InjectAuthorization() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authorization := c.GetHeader(keys.Authorization)
+		if authorization == "" {
+			return
+		}
+
+		ctx := c.Request.Context()
+		ctx = context.WithValue(ctx, keys.Authorization, authorization)
 		c.Request = c.Request.WithContext(ctx)
 	}
 }

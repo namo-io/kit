@@ -28,15 +28,14 @@ func Version() gin.HandlerFunc {
 	}
 }
 
-func Graphql(es graphql.ExecutableSchema) gin.HandlerFunc {
+func Graphql(gserver *handler.Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithCancel(c.Request.Context())
-		s := handler.NewDefaultServer(es)
-		s.Use(handler.ResponseFunc(func(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
+		gserver.Use(handler.ResponseFunc(func(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
 			defer cancel()
 			return next(ctx)
 		}))
-		s.ServeHTTP(c.Writer, c.Request)
+		gserver.ServeHTTP(c.Writer, c.Request)
 
 		<-ctx.Done()
 	}
