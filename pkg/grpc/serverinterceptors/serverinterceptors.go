@@ -7,7 +7,9 @@ import (
 	"github.com/namo-io/kit/pkg/keys"
 	"github.com/namo-io/kit/pkg/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 func Default() []grpc.UnaryServerInterceptor {
@@ -51,6 +53,11 @@ func ErrorHandling() grpc.UnaryServerInterceptor {
 			logger.Error(err)
 		}
 
-		return resp, err
+		_, ok := status.FromError(err)
+		if ok {
+			return resp, err
+		}
+
+		return resp, status.Error(codes.Internal, err.Error())
 	}
 }
