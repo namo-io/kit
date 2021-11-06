@@ -2,10 +2,13 @@ package serverinterceptors
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/namo-io/kit/pkg/errs"
 	"github.com/namo-io/kit/pkg/keys"
 	"github.com/namo-io/kit/pkg/log"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -53,9 +56,25 @@ func ErrorHandling() grpc.UnaryServerInterceptor {
 			logger.Error(err)
 		}
 
-		_, ok := status.FromError(err)
+		// if error type (kit pkg)
+		var kitError errs.Error
+		if errors.As(err, &kitError) {
+			st, err := status.New(codes.Internal, kitError.Message).WithDetails(&errdetails.ErrorInfo{
+				Domain:   kitError.Domain,
+				Reason:   kitError.Reason,
+				Metadata: kitError.Extensions,
+			})
+			if err != nil {
+				return resp, status.Error(codes.Internal, err.Error())
+			}
+
+			return resp, st.Err()
+		}
+
+		// if error type (status pkg)
+		grpcerr, ok := status.FromError(err)
 		if ok {
-			return resp, err
+			return resp, grpcerr.Err()
 		}
 
 		return resp, status.Error(codes.Internal, err.Error())
