@@ -10,7 +10,7 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/namo-io/kit/pkg/keys"
+	"github.com/namo-io/kit/pkg/ctxkey"
 	"github.com/namo-io/kit/pkg/log/logger"
 	"github.com/namo-io/kit/pkg/util"
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,7 +37,7 @@ func InjectRequestID() gin.HandlerFunc {
 
 		requestId := c.GetHeader("x-request-id")
 		if requestId == "" {
-			requestId = c.GetHeader(keys.RequestId)
+			requestId = c.GetHeader(ctxkey.RequestId)
 		}
 
 		if requestId == "" {
@@ -46,7 +46,7 @@ func InjectRequestID() gin.HandlerFunc {
 
 		// context
 		ctx := c.Request.Context()
-		ctx = context.WithValue(ctx, keys.RequestId, requestId)
+		ctx = context.WithValue(ctx, ctxkey.RequestId, requestId)
 		c.Request = c.Request.WithContext(ctx)
 	}
 }
@@ -54,13 +54,13 @@ func InjectRequestID() gin.HandlerFunc {
 // InjectAuthorization inject authorization into route context
 func InjectAuthorization() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authorization := c.GetHeader(keys.Authorization)
+		authorization := c.GetHeader(ctxkey.Authorization)
 		if authorization == "" {
 			return
 		}
 
 		ctx := c.Request.Context()
-		ctx = context.WithValue(ctx, keys.Authorization, authorization)
+		ctx = context.WithValue(ctx, ctxkey.Authorization, authorization)
 		c.Request = c.Request.WithContext(ctx)
 	}
 }
