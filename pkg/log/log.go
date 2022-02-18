@@ -2,158 +2,166 @@ package log
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"reflect"
 	"runtime"
+	"sync"
+	"time"
 
-	"github.com/namo-io/kit/pkg/log/logger"
-	"github.com/namo-io/kit/pkg/log/logger/typist"
-	hooks "github.com/namo-io/kit/pkg/log/logger/typist/hookers"
+	"github.com/namo-io/kit/pkg/ctxkey"
 )
 
-var (
-	_, fileName, _, _ = runtime.Caller(0)
+type Log interface {
+	Trace(...any)
+	Debug(...any)
+	Info(...any)
+	Warn(...any)
+	Error(...any)
+	Fatal(...any)
 
-	global = typist.New(
-		typist.WithCllerIgnorePackageFile(fileName),
-	)
-)
+	Tracef(string, ...any)
+	Debugf(string, ...any)
+	Infof(string, ...any)
+	Warnf(string, ...any)
+	Errorf(string, ...any)
+	Fatalf(string, ...any)
 
-const (
-	ApplicationMetaKey = "app"
-	ComponentMetaKey   = "component"
-	HostnameMetaKey    = "host"
-)
-
-func init() {
-	global.AddHooker(hooks.NewContextMapper())
+	WithField(string, string) Log
+	WithContext(context.Context) Log
 }
 
-type Config struct {
-	// Verbose print include debug, trace messages
-	Verbose bool
+type log struct {
+	m sync.Mutex
 
-	// DisableColor print without colors
-	DisableColor bool
+	fields    map[string]string
+	verbose   bool
+	recorders []*Recorder
 
-	// Application log with field name "application"
-	Application string
-
-	ElasticSearchHookerConfig ElasticSearchHookerConfig
+	callframeDepth int
 }
 
-type ElasticSearchHookerConfig struct {
-	Enable bool
-
-	// Endpoint Elasticsearch hook endpoint (e.g. "localhost:9200")
-	Endpoint string
-
-	// Index Elasticsearch index name (e.g. "spc-cicd-api-logs")
-	Index string
-
-	// Elasticsearch Client Sniff (e.g. false)
-	// docs: https://github.com/olivere/elastic/wiki/Sniffing
-	Sniff bool
+func (l *log) Trace(a ...any) {
+	l.record(TraceLevel, a...)
 }
 
-func AddConfig(cfg Config) error {
-	hostname, err := os.Hostname()
-	if err == nil {
-		AddField(HostnameMetaKey, hostname)
-	} else {
-		AddField(HostnameMetaKey, "Unknown")
+func (l *log) Tracef(format string, a ...any) {
+	l.record(TraceLevel, fmt.Sprintf(format, a...))
+}
+
+func (l *log) Debug(a ...any) {
+	l.record(DebugLevel, a...)
+}
+
+func (l *log) Debugf(format string, a ...any) {
+	l.record(DebugLevel, fmt.Sprintf(format, a...))
+}
+
+func (l *log) Warn(a ...any) {
+	l.record(WarnLevel, a...)
+}
+
+func (l *log) Warnf(format string, a ...any) {
+	l.record(WarnLevel, fmt.Sprintf(format, a...))
+}
+
+func (l *log) Info(a ...any) {
+	l.record(InfoLevel, a...)
+}
+
+func (l *log) Infof(format string, a ...any) {
+	l.record(InfoLevel, fmt.Sprintf(format, a...))
+}
+
+func (l *log) Error(a ...any) {
+	l.record(ErrorLevel, a...)
+}
+
+func (l *log) Errorf(format string, a ...any) {
+	l.record(ErrorLevel, fmt.Sprintf(format, a...))
+}
+
+func (l *log) Fatal(a ...any) {
+	l.record(FatalLevel, a...)
+	os.Exit(1)
+}
+
+func (l *log) Fatalf(format string, a ...any) {
+	l.record(FatalLevel, fmt.Sprintf(format, a...))
+	os.Exit(1)
+}
+
+func (l *log) WithField(key string, value string) Log {
+	if len(l.fields[key]) == 0 {
+		Warnf("log field is already exist, key='%v'", key)
 	}
 
-	if !cfg.Verbose {
-		AddOption(typist.WithVerboseDisable())
-	}
+	copylog := l.deepcopy()
+	copylog.fields[key] = value
 
-	if len(cfg.Application) > 0 {
-		AddField(ApplicationMetaKey, cfg.Application)
-	}
+	return copylog
+}
 
-	if cfg.DisableColor {
-		formatter := typist.NewDefaultFormatter()
-		formatter.IsUseColor = false
-		AddOption(typist.WithFormatter(formatter))
-	}
-
-	esHookerCfg := cfg.ElasticSearchHookerConfig
-	if esHookerCfg.Enable {
-		es, err := hooks.NewElasticSearchSender(&hooks.ElasticSearchSenderConfig{
-			Endpoints:       []string{esHookerCfg.Endpoint},
-			Sniff:           esHookerCfg.Sniff,
-			Index:           esHookerCfg.Index,
-			IsCallStackFire: true,
-		})
-		if err != nil {
-			return err
+func (l *log) WithContext(ctx context.Context) Log {
+	var copylog Log
+	copylog = l.deepcopy()
+	for _, ctxkey := range ctxkey.All {
+		value := ctx.Value(ctxkey)
+		if value == nil {
+			continue
 		}
 
-		global.AddHooker(es)
+		if reflect.TypeOf(value).String() != "string" {
+			Warnf("context value is not string, ctxkey:'%v'", ctxkey)
+			continue
+		}
+
+		copylog = l.WithField(ctxkey, value.(string))
 	}
 
-	return nil
+	return copylog
 }
 
-// AddOption add options to global logger
-func AddOption(opt typist.Options) {
-	opt(global)
+func (l *log) deepcopy() *log {
+	copyfields := make(map[string]string)
+	for key, value := range l.fields {
+		copyfields[key] = value
+	}
+
+	return &log{
+		verbose:        l.verbose,
+		fields:         copyfields,
+		recorders:      l.recorders,
+		callframeDepth: 0,
+	}
 }
 
-// AddHooker adding hooker to global logger
-func AddHooker(hooker typist.Hooker) error {
-	return global.AddHooker(hooker)
-}
+func (l *log) record(level Level, a ...any) {
+	// if verbose option, ignore specific level (trace, debug)
+	if !l.verbose && level < WarnLevel {
+		return
+	}
 
-// AddField adding field to global logger
-func AddField(key string, value interface{}) {
-	global.AddField(key, value)
-}
+	// collect log context information
+	ts := time.Now()
+	pcs := make([]uintptr, 10)
+	depth := runtime.Callers(1, pcs)
+	callFrames := runtime.CallersFrames(pcs[2+l.callframeDepth : depth])
 
-func Debug(args ...interface{}) {
-	global.Debug(args...)
-}
-func Info(args ...interface{}) {
-	global.Info(args...)
-}
-func Warn(args ...interface{}) {
-	global.Warn(args...)
-}
-func Error(args ...interface{}) {
-	global.Error(args...)
-}
-func Fatal(args ...interface{}) {
-	global.Fatal(args...)
-}
-func Trace(args ...interface{}) {
-	global.Trace(args...)
-}
+	var frames []runtime.Frame
+	for frame, again := callFrames.Next(); again; frame, again = callFrames.Next() {
+		frames = append(frames, frame)
+	}
 
-func Debugf(format string, args ...interface{}) {
-	global.Debugf(format, args...)
-}
-func Infof(format string, args ...interface{}) {
-	global.Infof(format, args...)
-}
-func Warnf(format string, args ...interface{}) {
-	global.Warnf(format, args...)
-}
-func Errorf(format string, args ...interface{}) {
-	global.Errorf(format, args...)
-}
-func Fatalf(format string, args ...interface{}) {
-	global.Fatalf(format, args...)
-}
-func Tracef(format string, args ...interface{}) {
-	global.Tracef(format, args...)
-}
+	// syncing
+	l.m.Lock()
+	defer l.m.Unlock()
 
-func WithField(key string, value interface{}) logger.Logger {
-	return global.WithField(key, value)
-}
-func WithFields(values map[string]interface{}) logger.Logger {
-	return global.WithFields(values)
-}
-func WithContext(ctx context.Context) logger.Logger {
-	return global.WithContext(ctx)
+	// record
+	for _, recorder := range glog.recorders {
+		err := recorder.record(ts, frames, level, fmt.Sprint(a...))
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 }

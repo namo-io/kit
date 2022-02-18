@@ -1,4 +1,4 @@
-package color
+package log
 
 import "fmt"
 
@@ -23,4 +23,22 @@ func (a AnsiColor) Render(t string) string {
 	}
 
 	return fmt.Sprintf("\x1b[%dm%s\x1b[0m", int(a), t)
+}
+
+func NewColorByLogLevel(level Level) AnsiColor {
+	color := DefaultAnsiColor
+	switch level {
+	case ErrorLevel:
+		color = RedAnsiColor
+	case WarnLevel:
+		color = YellowAnsiColor
+	case InfoLevel:
+		color = CyanAnsiColor
+	case DebugLevel:
+		color = BlueAnsiColor
+	case TraceLevel:
+		color = GrayAnsiColor
+	}
+
+	return color
 }

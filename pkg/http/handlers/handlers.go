@@ -8,7 +8,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gin-gonic/gin"
-	"github.com/namo-io/kit/pkg/version"
+	"github.com/namo-io/kit/pkg/buildinfo"
 )
 
 func OK() gin.HandlerFunc {
@@ -21,9 +21,9 @@ func Version() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		switch c.ContentType() {
 		case gin.MIMEJSON:
-			c.JSON(http.StatusOK, version.String())
+			c.JSON(http.StatusOK, buildinfo.GetVersion())
 		default:
-			c.String(http.StatusOK, version.Info().String())
+			c.String(http.StatusOK, buildinfo.GetVersion())
 		}
 	}
 }
