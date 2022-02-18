@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/namo-io/kit/pkg/ctxkey"
-	"github.com/namo-io/kit/pkg/log/logger"
+	"github.com/namo-io/kit/pkg/log"
 	"github.com/namo-io/kit/pkg/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -66,10 +66,10 @@ func InjectAuthorization() gin.HandlerFunc {
 }
 
 // Logging log output for incoming connections
-func Logging(logger logger.Logger) gin.HandlerFunc {
+func Logging(log log.Log) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		logger := logger.WithContext(c.Request.Context())
-		logger.Debugf("[%v] %s %s", c.Request.Method, c.Request.URL.RequestURI(), c.Request.URL.Query().Encode())
+		log := log.WithContext(c.Request.Context())
+		log.Debugf("[%v] %s %s", c.Request.Method, c.Request.URL.RequestURI(), c.Request.URL.Query().Encode())
 	}
 }
 

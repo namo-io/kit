@@ -10,7 +10,7 @@ func NewDefaultRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Version: buildinfo.GetVersion(),
 	}
-	cmd.SetVersionTemplate(`{{ printf "%s\n" .Version }}`)
+	cmd.SetVersionTemplate(`{{ printf "v%s\n" .Version }}`)
 
 	return cmd
 }
