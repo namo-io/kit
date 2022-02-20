@@ -9,7 +9,6 @@ require (
 	github.com/gin-gonic/gin v1.7.2
 	github.com/google/uuid v1.3.0
 	github.com/prometheus/client_golang v1.11.0
-	github.com/ryanuber/columnize v2.1.2+incompatible
 	github.com/spf13/cobra v1.2.1
 	go.mongodb.org/mongo-driver v1.7.0
 	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c
