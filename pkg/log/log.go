@@ -92,7 +92,7 @@ func (l *log) Fatalf(format string, a ...any) {
 }
 
 func (l *log) WithField(key string, value string) Log {
-	if len(l.fields[key]) == 0 {
+	if len(l.fields[key]) != 0 {
 		Warnf("log field is already exist, key='%v'", key)
 	}
 
