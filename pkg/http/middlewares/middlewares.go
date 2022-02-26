@@ -86,7 +86,7 @@ func CORS() gin.HandlerFunc {
 
 func GRPC(s *grpc.Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if c.Request.ProtoMajor == 2 && strings.Contains(c.ContentType(), "application/grpc") {
+		if c.Request.ProtoMajor == 2 && strings.HasPrefix("application/grpc", c.ContentType()) {
 			s.ServeHTTP(c.Writer, c.Request)
 		}
 	}

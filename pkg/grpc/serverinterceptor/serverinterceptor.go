@@ -2,8 +2,8 @@ package serverinterceptor
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/namo-io/kit/pkg/ctxkey"
 	"github.com/namo-io/kit/pkg/log"
 	"google.golang.org/grpc"
@@ -14,29 +14,49 @@ import (
 
 var Default = []grpc.UnaryServerInterceptor{
 	InjectContextByMetadata,
+	InjectRequestID,
 	ErrorHandling,
+	Logging,
 }
 
 func InjectContextByMetadata(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, fmt.Errorf("metadata context is empty")
+	if ok {
+		for _, key := range ctxkey.All {
+			values := md.Get(key)
+			if len(values) == 0 {
+				continue
+			}
+
+			if len(values) == 1 {
+				ctx = context.WithValue(ctx, key, values[0])
+			} else {
+				ctx = context.WithValue(ctx, key, values)
+			}
+
+		}
 	}
 
-	for _, key := range ctxkey.All {
-		values := md.Get(key)
-		if len(values) == 0 {
-			continue
-		}
+	return handler(ctx, req)
+}
 
-		if len(values) == 1 {
-			ctx = context.WithValue(ctx, key, values[0])
-		} else {
-			ctx = context.WithValue(ctx, key, values)
-		}
-
+func InjectRequestID(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	requestId := ctx.Value("x-request-id")
+	if requestId == "" {
+		requestId = ctx.Value(ctxkey.RequestId)
 	}
 
+	if requestId == "" {
+		requestId = uuid.New().String()
+	}
+
+	ctx = context.WithValue(ctx, ctxkey.RequestId, requestId)
+	return handler(ctx, req)
+}
+
+func Logging(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	log := log.WithContext(ctx)
+	log.Debugf("request comming... method: '%v'", info.FullMethod)
 	return handler(ctx, req)
 }
 
