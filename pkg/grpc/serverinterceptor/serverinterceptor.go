@@ -68,7 +68,7 @@ func ErrorHandling(ctx context.Context, req interface{}, info *grpc.UnaryServerI
 		gerr, ok := status.FromError(err)
 		if ok {
 			log.Error(gerr.Message())
-			return resp, err
+			return resp, gerr.Err()
 		} else {
 			log.Error(err)
 			return resp, status.New(codes.Internal, "An error occurred internally.").Err()
