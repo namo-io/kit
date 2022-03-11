@@ -46,13 +46,12 @@ func NewDefaultRecorder() *Recorder {
 			fieldsMsg = fmt.Sprintf("%v, %v=%v", fieldsMsg, k, v)
 		}
 
-		_, err := fmt.Println(fmt.Sprintf("%v %v: %v%v %v",
+		_, err := fmt.Println(fmt.Sprintf("%v %v %v%v %v",
 			ts.Format(timeFormat),
-			NewColorByLogLevel(level).Render(strings.ToUpper(level.toString()[:4])),
+			newColorByLogLevel(level).Render(strings.ToUpper(level.toString()[:4])),
 			fmt.Sprint(msg),
 			fieldsMsg,
-			NewColorByLogLevel(TraceLevel).
-				Render(fmt.Sprintf("(%v:%v)", filename, frames[0].Line)),
+			GrayColor.Render(fmt.Sprintf("(%v:%v)", filename, frames[0].Line)),
 		))
 		return err
 	})

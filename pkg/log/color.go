@@ -2,42 +2,41 @@ package log
 
 import "fmt"
 
-// ANSI escape color code formatter
-// support color tables docs: https://en.wikipedia.org/wiki/ANSI_escape_code
-type AnsiColor int
+type Color int
 
 const (
-	DefaultAnsiColor = AnsiColor(-1)
-	BlackAnsiColor   = AnsiColor(30)
-	RedAnsiColor     = AnsiColor(31)
-	YellowAnsiColor  = AnsiColor(33)
-	BlueAnsiColor    = AnsiColor(34)
-	CyanAnsiColor    = AnsiColor(36)
-	GrayAnsiColor    = AnsiColor(90)
+	DefaultColor   = Color(-1)
+	BlackColor     = Color(232)
+	RedColor       = Color(9)
+	YellowColor    = Color(11)
+	BlueColor      = Color(12)
+	CyanColor      = Color(14)
+	GrayColor      = Color(239)
+	LightGrayColor = Color(245)
 )
 
 // Render is rendering text as color text
-func (a AnsiColor) Render(t string) string {
-	if a == DefaultAnsiColor {
+func (a Color) Render(t string) string {
+	if a == DefaultColor {
 		return t
 	}
 
-	return fmt.Sprintf("\x1b[%dm%s\x1b[0m", int(a), t)
+	return fmt.Sprintf("\x1b[38;5;%dm%s\x1b[0m", int(a), t)
 }
 
-func NewColorByLogLevel(level Level) AnsiColor {
-	color := DefaultAnsiColor
+func newColorByLogLevel(level Level) Color {
+	color := DefaultColor
 	switch level {
 	case ErrorLevel:
-		color = RedAnsiColor
+		color = RedColor
 	case WarnLevel:
-		color = YellowAnsiColor
+		color = YellowColor
 	case InfoLevel:
-		color = CyanAnsiColor
+		color = CyanColor
 	case DebugLevel:
-		color = BlueAnsiColor
+		color = BlueColor
 	case TraceLevel:
-		color = GrayAnsiColor
+		color = LightGrayColor
 	}
 
 	return color
