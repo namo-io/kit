@@ -158,8 +158,8 @@ func (l *log) record(level Level, a ...any) {
 	defer l.m.Unlock()
 
 	// record
-	for _, recorder := range glog.recorders {
-		err := recorder.record(ts, frames, level, fmt.Sprint(a...))
+	for _, recorder := range l.recorders {
+		err := recorder.record(ts, frames, level, fmt.Sprint(a...), l.fields)
 		if err != nil {
 			fmt.Println(err)
 		}

@@ -9,7 +9,7 @@ import (
 )
 
 type RecordOptions func(*Recorder)
-type Record func(time.Time, []runtime.Frame, Level, string) error
+type Record func(time.Time, []runtime.Frame, Level, string, map[string]string) error
 
 type Recorder struct {
 	record Record
@@ -30,7 +30,7 @@ func NewRecorder(r Record, opts ...RecordOptions) *Recorder {
 func NewDefaultRecorder() *Recorder {
 	const timeFormat = "2006/01/02 15:04:05.000 (MST)"
 
-	return NewRecorder(func(ts time.Time, frames []runtime.Frame, level Level, msg string) error {
+	return NewRecorder(func(ts time.Time, frames []runtime.Frame, level Level, msg string, fields map[string]string) error {
 		// funcname := "unknown"
 		filename := "unknown"
 
@@ -41,12 +41,18 @@ func NewDefaultRecorder() *Recorder {
 			filename = path.Base(frames[0].File)
 		}
 
-		_, err := fmt.Println(fmt.Sprintf("%v %v:%v [%v] %v",
+		fieldsMsg := ""
+		for k, v := range fields {
+			fieldsMsg = fmt.Sprintf("%v, %v=%v", fieldsMsg, k, v)
+		}
+
+		_, err := fmt.Println(fmt.Sprintf("%v %v: %v%v %v",
 			ts.Format(timeFormat),
-			filename,
-			frames[0].Line,
 			NewColorByLogLevel(level).Render(strings.ToUpper(level.toString()[:4])),
 			fmt.Sprint(msg),
+			fieldsMsg,
+			NewColorByLogLevel(TraceLevel).
+				Render(fmt.Sprintf("(%v:%v)", filename, frames[0].Line)),
 		))
 		return err
 	})
