@@ -102,7 +102,6 @@ func WithField(key string, value string) Log {
 	return glog.WithField(key, value)
 }
 
-// WithContext inject context in keys of 'ctxkey' package into log fields
 func WithContext(ctx context.Context) Log {
 	return glog.WithContext(ctx)
 }

@@ -28,6 +28,7 @@ type Log interface {
 	Fatalf(string, ...any)
 
 	WithField(string, string) Log
+	WithFields(map[string]string) Log
 	WithContext(context.Context) Log
 }
 
@@ -98,6 +99,17 @@ func (l *log) WithField(key string, value string) Log {
 
 	copylog := l.deepcopy()
 	copylog.fields[key] = value
+
+	return copylog
+}
+
+func (l *log) WithFields(fields map[string]string) Log {
+	var copylog Log
+	copylog = l
+
+	for k, v := range fields {
+		copylog = copylog.WithField(k, v)
+	}
 
 	return copylog
 }
