@@ -6,13 +6,14 @@ import (
 )
 
 var (
-	glog = &log{
+	gLog = &log{
 		callframeDepth: 1,
 		verbose:        true,
 		fields:         map[string]string{},
-		recorders: []*Recorder{
-			NewDefaultRecorder(),
-		},
+	}
+
+	gRecorders = []*Recorder{
+		NewDefaultRecorder(),
 	}
 
 	ErrRecorderParameterIsNil = fmt.Errorf("recorder parameter is nil")
@@ -21,7 +22,7 @@ var (
 
 // SetVerbose get more information about logging, default: true
 func SetVerbose(v bool) {
-	glog.verbose = v
+	gLog.verbose = v
 }
 
 // Addrecorder add recorder into global log
@@ -34,15 +35,15 @@ func AddRecorder(r *Recorder) error {
 		return ErrRecorderIsAlreadyAdded
 	}
 
-	Tracef("log recorder added, recorders length: %d", len(glog.recorders))
-	glog.recorders = append(glog.recorders, r)
+	WithField("recordersLength", fmt.Sprintf("%v", len(gRecorders))).Tracef("log recorder added")
+	gRecorders = append(gRecorders, r)
 
 	return nil
 }
 
 // IsExistRecorder check to exist Recorder
 func IsExistRecorder(r *Recorder) bool {
-	for _, recorder := range glog.recorders {
+	for _, recorder := range gRecorders {
 		if recorder == r {
 			return false
 		}
@@ -51,62 +52,72 @@ func IsExistRecorder(r *Recorder) bool {
 	return true
 }
 
+// SetField set field to global log
+func SetField(k string, v string) {
+	gLog = gLog.WithField(k, v).(*log)
+}
+
+// SetFields set field to global log
+func SetFields(fields map[string]string) {
+	gLog = gLog.WithFields(fields).(*log)
+}
+
 func Trace(a ...any) {
-	glog.Trace(a...)
+	gLog.Trace(a...)
 }
 
 func Tracef(format string, a ...any) {
-	glog.Tracef(format, a...)
+	gLog.Tracef(format, a...)
 }
 
 func Debug(a ...any) {
-	glog.Debug(a...)
+	gLog.Debug(a...)
 }
 
 func Debugf(format string, a ...any) {
-	glog.Debugf(format, a...)
+	gLog.Debugf(format, a...)
 }
 
 func Warn(a ...any) {
-	glog.Warn(a...)
+	gLog.Warn(a...)
 }
 
 func Warnf(format string, a ...any) {
-	glog.Warnf(format, a...)
+	gLog.Warnf(format, a...)
 }
 
 func Info(a ...any) {
-	glog.Info(a...)
+	gLog.Info(a...)
 }
 
 func Infof(format string, a ...any) {
-	glog.Infof(format, a...)
+	gLog.Infof(format, a...)
 }
 
 func Error(a ...any) {
-	glog.Error(a...)
+	gLog.Error(a...)
 }
 
 func Errorf(format string, a ...any) {
-	glog.Errorf(format, a...)
+	gLog.Errorf(format, a...)
 }
 
 func Fatal(a ...any) {
-	glog.Fatal(a...)
+	gLog.Fatal(a...)
 }
 
 func Fatalf(format string, a ...any) {
-	glog.Fatalf(format, a...)
+	gLog.Fatalf(format, a...)
 }
 
 func WithField(key string, value string) Log {
-	return glog.WithField(key, value)
+	return gLog.WithField(key, value)
 }
 
 func WithFields(fields map[string]string) Log {
-	return glog.WithFields(fields)
+	return gLog.WithFields(fields)
 }
 
 func WithContext(ctx context.Context) Log {
-	return glog.WithContext(ctx)
+	return gLog.WithContext(ctx)
 }

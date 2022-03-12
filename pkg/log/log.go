@@ -35,9 +35,8 @@ type Log interface {
 type log struct {
 	m sync.Mutex
 
-	fields    map[string]string
-	verbose   bool
-	recorders []*Recorder
+	fields  map[string]string
+	verbose bool
 
 	callframeDepth int
 }
@@ -142,7 +141,6 @@ func (l *log) deepcopy() *log {
 	return &log{
 		verbose:        l.verbose,
 		fields:         copyfields,
-		recorders:      l.recorders,
 		callframeDepth: 0,
 	}
 }
@@ -169,7 +167,7 @@ func (l *log) record(level Level, a ...any) {
 	defer l.m.Unlock()
 
 	// record
-	for _, recorder := range l.recorders {
+	for _, recorder := range gRecorders {
 		err := recorder.record(ts, frames, level, fmt.Sprint(a...), l.fields)
 		if err != nil {
 			fmt.Println(err)

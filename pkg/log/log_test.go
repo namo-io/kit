@@ -11,9 +11,9 @@ func TestLog(t *testing.T) {
 	Trace("TEST")
 	Trace("TEST")
 	Trace("TEST")
-	test(glog)
-	glog.WithField("addr", "127.0.0.1").Debug("QQ")
-	glog.WithFields(map[string]string{
+	test(gLog)
+	gLog.WithField("addr", "127.0.0.1").Debug("QQ")
+	gLog.WithFields(map[string]string{
 		"addr":  "127.0.0.1",
 		"addr2": "127.0.0.2",
 	}).Debug("QQ")
