@@ -27,6 +27,8 @@ func (a Color) Render(t string) string {
 func newColorByLogLevel(level Level) Color {
 	color := DefaultColor
 	switch level {
+	case FatalLevel:
+		color = RedColor
 	case ErrorLevel:
 		color = RedColor
 	case WarnLevel:

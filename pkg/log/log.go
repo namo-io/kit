@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/namo-io/kit/pkg/ctxkey"
+	"github.com/namo-io/kit/pkg/mctx"
 )
 
 type Log interface {
@@ -115,20 +115,19 @@ func (l *log) WithFields(fields map[string]string) Log {
 }
 
 func (l *log) WithContext(ctx context.Context) Log {
-	var copylog Log
-	copylog = l.deepcopy()
-	for _, ctxkey := range ctxkey.All {
-		value := ctx.Value(ctxkey)
+	copylog := l.deepcopy()
+	for _, k := range mctx.Keys {
+		value := ctx.Value(k)
 		if value == nil {
 			continue
 		}
 
 		if reflect.TypeOf(value).String() != "string" {
-			Warnf("context value is not string, ctxkey:'%v'", ctxkey)
+			WithField("key", k.String()).Warnf("context value is not string")
 			continue
 		}
 
-		copylog = l.WithField(ctxkey, value.(string))
+		copylog = l.WithField(k.String(), value.(string)).(*log)
 	}
 
 	return copylog

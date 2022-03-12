@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/namo-io/kit/pkg/ctxkey"
 	"github.com/namo-io/kit/pkg/log"
+	"github.com/namo-io/kit/pkg/mctx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -13,27 +13,19 @@ import (
 )
 
 var Default = []grpc.UnaryServerInterceptor{
-	InjectContextByMetadata,
+	InjectContextAuthoriztion,
 	InjectRequestID,
-	ErrorHandling,
 	Logging,
+	Tracing,
+	ErrorHandling,
 }
 
-func InjectContextByMetadata(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+func InjectContextAuthoriztion(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
-		for _, key := range ctxkey.All {
-			values := md.Get(key)
-			if len(values) == 0 {
-				continue
-			}
-
-			if len(values) == 1 {
-				ctx = context.WithValue(ctx, key, values[0])
-			} else {
-				ctx = context.WithValue(ctx, key, values)
-			}
-
+		authorizationCode := md.Get(mctx.AuthorizationKey.String())
+		if len(authorizationCode) == 1 {
+			ctx = mctx.WithAuthorization(ctx, authorizationCode[0])
 		}
 	}
 
@@ -43,24 +35,31 @@ func InjectContextByMetadata(ctx context.Context, req interface{}, info *grpc.Un
 func InjectRequestID(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	requestId := ctx.Value("x-request-id")
 	if requestId == "" {
-		requestId = ctx.Value(ctxkey.RequestId)
+		requestId = ctx.Value(mctx.RequestIdKey.String())
 	}
 
 	if requestId == "" {
-		requestId = uuid.New().String()
+		ctx = mctx.WithRequestId(ctx, uuid.New().String())
 	}
 
-	ctx = context.WithValue(ctx, ctxkey.RequestId, requestId)
 	return handler(ctx, req)
 }
 
 func Logging(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	log := log.WithContext(ctx)
-	log.Debugf("request comming... method: '%v'", info.FullMethod)
+	log.WithField("method", info.FullMethod).Debugf("grpc request comming...")
 	return handler(ctx, req)
 }
 
+func Tracing(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	r, err := handler(ctx, req)
+	log.Trace("Tracing end")
+
+	return r, err
+}
+
 func ErrorHandling(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	log.Trace("ErrorHandling")
 	log := log.WithContext(ctx)
 
 	resp, err := handler(ctx, req)

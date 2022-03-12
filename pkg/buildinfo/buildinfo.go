@@ -1,7 +1,7 @@
 package buildinfo
 
 var (
-	Tag string = "development"
+	Tag string = "dev"
 )
 
 func GetVersion() string {

@@ -9,6 +9,7 @@ var (
 	glog = &log{
 		callframeDepth: 1,
 		verbose:        true,
+		fields:         map[string]string{},
 		recorders: []*Recorder{
 			NewDefaultRecorder(),
 		},
@@ -100,6 +101,10 @@ func Fatalf(format string, a ...any) {
 
 func WithField(key string, value string) Log {
 	return glog.WithField(key, value)
+}
+
+func WithFields(fields map[string]string) Log {
+	return glog.WithFields(fields)
 }
 
 func WithContext(ctx context.Context) Log {

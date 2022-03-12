@@ -43,7 +43,7 @@ func NewDefaultRecorder() *Recorder {
 
 		fieldsMsg := ""
 		for k, v := range fields {
-			fieldsMsg = fmt.Sprintf("%v, %v=%v", fieldsMsg, k, v)
+			fieldsMsg = fmt.Sprintf("%v, %v='%v'", fieldsMsg, k, v)
 		}
 
 		_, err := fmt.Println(fmt.Sprintf("%v %v %v%v %v",
