@@ -20,7 +20,7 @@ func SetPrometheusMetricProvider(serviceName string, serviceId string, serviceVe
 
 	http.HandleFunc("/metrics", promhttp.Handler().ServeHTTP)
 	go func() {
-		_ = http.ListenAndServe(":8801", nil)
+		_ = http.ListenAndServe(fmt.Sprintf(":%v", metricPort), nil)
 	}()
 
 	defaultLabels = prometheus.Labels{
