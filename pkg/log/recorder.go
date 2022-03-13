@@ -41,9 +41,12 @@ func NewDefaultRecorder() *Recorder {
 			filename = path.Base(frames[0].File)
 		}
 
+		// create fields msg without "service." prefix keys
 		fieldsMsg := ""
 		for k, v := range fields {
-			fieldsMsg = fmt.Sprintf("%v, %v='%v'", fieldsMsg, k, v)
+			if !strings.HasPrefix(k, "service.") {
+				fieldsMsg = fmt.Sprintf("%v, %v='%v'", fieldsMsg, k, v)
+			}
 		}
 
 		_, err := fmt.Println(fmt.Sprintf("%v %v %v%v %v",

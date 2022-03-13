@@ -53,13 +53,15 @@ func IsExistRecorder(r *Recorder) bool {
 }
 
 // SetField set field to global log
-func SetField(k string, v string) {
+func SetField(k string, v string) Log {
 	gLog = gLog.WithField(k, v).(*log)
+	return gLog
 }
 
 // SetFields set field to global log
-func SetFields(fields map[string]string) {
+func SetFields(fields map[string]string) Log {
 	gLog = gLog.WithFields(fields).(*log)
+	return gLog
 }
 
 func Trace(a ...any) {

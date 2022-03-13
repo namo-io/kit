@@ -12,6 +12,7 @@ func TestLog(t *testing.T) {
 	Trace("TEST")
 	Trace("TEST")
 	test(gLog)
+	gLog.WithField("app.name", "Test").Info("QWE")
 	gLog.WithField("addr", "127.0.0.1").Debug("QQ")
 	gLog.WithFields(map[string]string{
 		"addr":  "127.0.0.1",

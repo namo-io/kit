@@ -4,7 +4,17 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/google/uuid"
 )
+
+var (
+	serviceId = uuid.NewString()
+)
+
+func GetServiceId() string {
+	return serviceId
+}
 
 func GetHostname() string {
 	hostname, err := os.Hostname()

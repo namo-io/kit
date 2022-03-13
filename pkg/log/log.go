@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/namo-io/kit/pkg/mctx"
+	"github.com/namo-io/kit/pkg/key"
 )
 
 type Log interface {
@@ -115,7 +115,7 @@ func (l *log) WithFields(fields map[string]string) Log {
 
 func (l *log) WithContext(ctx context.Context) Log {
 	copylog := l.deepcopy()
-	for _, k := range mctx.Keys {
+	for _, k := range key.Keys {
 		value := ctx.Value(k)
 		if value == nil {
 			continue

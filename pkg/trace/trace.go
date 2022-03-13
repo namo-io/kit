@@ -15,14 +15,15 @@ import (
 )
 
 var (
-	gtp = tracesdk.NewTracerProvider()
+	defaultTp = tracesdk.NewTracerProvider()
+	gtp       = defaultTp
 )
 
 func Start(ctx context.Context, spanName string) (context.Context, otrace.Span) {
 	attrs := []attribute.KeyValue{}
 
 	requestId := mctx.GetRequestId(ctx)
-	if len(requestId) == 0 {
+	if len(requestId) != 0 {
 		attrs = append(attrs, attribute.String("request.id", requestId))
 	}
 
@@ -30,33 +31,28 @@ func Start(ctx context.Context, spanName string) (context.Context, otrace.Span) 
 }
 
 func Shutdown(ctx context.Context) error {
+	if defaultTp == gtp {
+		return nil
+	}
+
 	return gtp.Shutdown(ctx)
 }
 
-func SetJeagerTraceProviderFromContext(ctx context.Context, url string) error {
-	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(url)))
+func SetJeagerTraceProvider(serviceName string, serviceId string, serviceVersion string, jeagerEndpoint string) error {
+	if len(serviceName) == 0 {
+		return fmt.Errorf("service name is empty")
+	}
+
+	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(jeagerEndpoint)))
 	if err != nil {
 		return err
 	}
 
 	attrs := []attribute.KeyValue{
 		attribute.String("host", util.GetHostname()),
-	}
-
-	appName := mctx.GetAppName(ctx)
-	if len(appName) == 0 {
-		return fmt.Errorf("app name is nil")
-	}
-	attrs = append(attrs, semconv.ServiceNameKey.String(appName))
-
-	appId := mctx.GetAppId(ctx)
-	if len(appId) != 0 {
-		attrs = append(attrs, semconv.ServiceInstanceIDKey.String(appId))
-	}
-
-	appVersion := mctx.GetAppVersion(ctx)
-	if len(appVersion) != 0 {
-		attrs = append(attrs, semconv.ServiceVersionKey.String(appVersion))
+		semconv.ServiceNameKey.String(serviceName),
+		semconv.ServiceInstanceIDKey.String(serviceId),
+		semconv.ServiceVersionKey.String(serviceVersion),
 	}
 
 	gtp = tracesdk.NewTracerProvider(
