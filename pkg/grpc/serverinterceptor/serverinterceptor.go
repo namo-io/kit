@@ -2,11 +2,16 @@ package serverinterceptor
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/namo-io/kit/pkg/log"
 	"github.com/namo-io/kit/pkg/mctx"
+	"github.com/namo-io/kit/pkg/metric"
 	"github.com/namo-io/kit/pkg/trace"
+	"github.com/prometheus/client_golang/prometheus"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -18,6 +23,7 @@ var Default = []grpc.UnaryServerInterceptor{
 	InjectRequestID,
 	Logging,
 	Tracing,
+	Metrics,
 	ErrorHandling,
 }
 
@@ -65,9 +71,38 @@ func Tracing(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, h
 	ctx, span := trace.Start(ctx, info.FullMethod)
 	defer span.End()
 
-	r, err := handler(ctx, req)
+	return handler(ctx, req)
+}
 
-	return r, err
+func Metrics(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	t := time.Now()
+	resp, err := handler(ctx, req)
+	latencySeconds := time.Now().Sub(t).Seconds()
+
+	labels := prometheus.Labels{
+		"method": info.FullMethod,
+	}
+
+	if err != nil {
+		gerr, ok := status.FromError(err)
+		if ok {
+			labels["status_code"] = fmt.Sprintf("%v", int(gerr.Code()))
+
+			for _, detail := range gerr.Details() {
+				switch d := detail.(type) {
+				case *errdetails.ErrorInfo:
+					labels["exception_type"] = d.GetDomain()
+				}
+			}
+		}
+	} else {
+		labels["status_code"] = fmt.Sprintf("%v", int(codes.OK))
+	}
+
+	metric.GrpcRequestsTotal.With(labels).Add(1)
+	metric.GrpcRequestDurationSeconds.With(labels).Observe(latencySeconds)
+
+	return resp, err
 }
 
 func ErrorHandling(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
