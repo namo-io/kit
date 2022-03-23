@@ -80,7 +80,9 @@ func Metrics(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, h
 	latencySeconds := time.Now().Sub(t).Seconds()
 
 	labels := prometheus.Labels{
-		"method": info.FullMethod,
+		"method":         info.FullMethod,
+		"status_code":    "",
+		"exception_type": "",
 	}
 
 	if err != nil {
